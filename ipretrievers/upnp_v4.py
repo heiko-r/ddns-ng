@@ -19,7 +19,7 @@
 def getIP():
 	import miniupnpc
 	u = miniupnpc.UPnP()
-	u.discoverdelay = 200;
+	u.discoverdelay = 200
 	ndevices = u.discover()
 	if ndevices == 0:
 		print("ERROR: Could not find UPnp devices.")

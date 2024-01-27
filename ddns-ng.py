@@ -21,7 +21,7 @@
 
 import os
 import sys
-import ConfigParser
+import configparser
 import importlib
 from IPy import IP
 
@@ -40,9 +40,9 @@ if not os.path.isfile(config_file):
 	sys.exit("Could not find the configuration file. Provide a path to the config file as a command line argument or call the script without any arguments.")
 
 # Read config file
-config = ConfigParser.RawConfigParser()
+config = configparser.ConfigParser()
 try:
-	config.readfp(open(config_file)) # TODO: throw exception if invalid config file?
+	config.read(config_file) # TODO: throw exception if invalid config file?
 except:
 	sys.exit("Configuration file exists but could not be read.")
 
@@ -71,7 +71,7 @@ for precheck in prechecks:
 	if precheck.needUpdate():
 		cont = True
 		break
-if cont == False:
+if not cont:
 	# All pre-checks succeeded, i.e. we do not need to run the script any further
 	if not config.getboolean('DEFAULT', 'quiet'):
 		print("INFO: Pre-checks successful: No update required.")
@@ -86,21 +86,19 @@ for ipretriever in ipretrievers:
 	if new_ip.version() == 4:
 		new_ipv4 = new_ip
 		if not config.getboolean('DEFAULT', 'quiet'):
-			print("INFO: Your external IPv4 address: " + str(new_ipv4.strNormal()))
+			print(f"INFO: Your external IPv4 address: {new_ipv4.strNormal()}")
 	if new_ip.version() == 6:
 		new_ipv6 = new_ip
 		if not config.getboolean('DEFAULT', 'quiet'):
-			print("INFO: Your external IPv6 address: " + str(new_ipv6.strNormal()))
-	if not new_ipv4 == None and not new_ipv6 == None:
+			print(f"INFO: Your external IPv6 address: {new_ipv6.strNormal()}")
+	if new_ipv4 and new_ipv6:
 		# retrieved both IPv4 and IPv6 addresses -> stop trying to retrieve more addresses and continue the update
 		break
-if new_ipv4 == None:
-	if not config.getboolean('DEFAULT', 'quiet'):
-		print("INFO: Could not retrieve IPv4 address. Please check whether your module for retrieving your external IPv4 works correctly, or choose another one.")
-if new_ipv6 == None:
-	if not config.getboolean('DEFAULT', 'quiet'):
-		print("INFO: Could not retrieve IPv6 address. Please check whether your module for retrieving your external IPv4 works correctly, or choose another one.")
-if new_ipv4 == None and new_ipv6 == None:
+if not new_ipv4 and not config.getboolean('DEFAULT', 'quiet'):
+	print("INFO: Could not retrieve IPv4 address. Please check whether your module for retrieving your external IPv4 works correctly, or choose another one.")
+if not new_ipv6 and not config.getboolean('DEFAULT', 'quiet'):
+	print("INFO: Could not retrieve IPv6 address. Please check whether your module for retrieving your external IPv4 works correctly, or choose another one.")
+if not new_ipv4 and not new_ipv6:
 	sys.exit("ERROR: Could not retrieve any IP address. Please check whether your modules for retrieveing your external IP addresses work correctly, or choose other ones.")
 
 # 3 - Optional: Check if the IP addresses changed since the last update. Do not update when the following functions return False.
@@ -108,10 +106,10 @@ if new_ipv4 == None and new_ipv6 == None:
 ipv4_changed = False
 ipv6_changed = False
 for oldip in oldips:
-	if not new_ipv4 == None and oldip.changedIPv4(new_ipv4):
+	if new_ipv4 and oldip.changedIPv4(new_ipv4):
 		# IPv4 address changed since last update.
 		ipv4_changed = True
-	if not new_ipv6 == None and oldip.changedIPv6(new_ipv6):
+	if new_ipv6 and oldip.changedIPv6(new_ipv6):
 		# IPv6 address changed since last update.
 		ipv6_changed = True
 

@@ -16,12 +16,15 @@
 
 # Basic module to retrieve the public, global IPv6 address locally
 
+from subprocess import CalledProcessError
+
+
 DEVICE = "eth0"
 
 def getIP():
 	from subprocess import check_output
 	try:
-		return filter(lambda x: x.startswith('2'), check_output(r"ip -6 addr show dev eth0 scope global | sed -e's/^.*inet6 \([^ ]*\)\/.*$/\1/;t;d'", shell=True, universal_newlines=True).strip().split("\n"))[0]
+		return next(filter(lambda x: x.startswith('2'), check_output(r"ip -6 addr show dev eth0 scope global | sed -e's/^.*inet6 \([^ ]*\)\/.*$/\1/;t;d'", shell=True, universal_newlines=True).strip().split("\n")))
 	except CalledProcessError as err:
-		print("ERROR: Failed to retrieve IPv6 address: " + str(err))
+		print(f"ERROR: Failed to retrieve IPv6 address: {err}")
 		return None

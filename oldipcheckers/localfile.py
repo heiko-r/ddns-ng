@@ -34,11 +34,11 @@ def changedIPv6(new_ipv6):
 	return old_ipv6 != new_ipv6.strNormal()
 
 def save(new_ipv4, new_ipv6):
-	if not new_ipv4 == None:
+	if new_ipv4:
 		ipv4_filehandler = open(IPV4_FILE, 'r+')
 		ipv4_filehandler.write(new_ipv4.strNormal())
 		ipv4_filehandler.close()
-	if not new_ipv6 == None:
+	if new_ipv6:
 		ipv6_filehandler = open(IPV6_FILE, 'r+')
 		ipv6_filehandler.write(new_ipv6.strNormal())
 		ipv6_filehandler.close()

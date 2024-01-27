@@ -18,7 +18,7 @@
 
 import os
 import sys
-import ConfigParser
+import configparser
 import requests
 import xml.etree.ElementTree as ET
 
@@ -36,8 +36,8 @@ if not os.path.isfile(config_file):
 	sys.exit("Could not find the configuration file for the namesilo module. Please check that the dnsupdaters/namesilo.ini file is readable.")
 
 # Read config file
-config = ConfigParser.RawConfigParser()
-config.readfp(open(config_file)) # TODO: throw exception if invalid config file?
+config = configparser.ConfigParser()
+config.read(config_file) # TODO: throw exception if invalid config file?
 
 def update(new_ipv4, new_ipv6):
 	# Create a list of record IDs we want to update
@@ -50,11 +50,11 @@ def update(new_ipv4, new_ipv6):
 			'name': domain
 		}
 		r = requests.get('https://www.namesilo.com/api/dnsListRecords', params=request_params)
-		if not r.status_code == 200:
-			sys.exit("Unexpected status code while loading records for '" + domain + "': " + str(r.status_code))
+		if r.status_code != 200:
+			sys.exit(f"Unexpected status code while loading records for '{domain}': {r.status_code}")
 		response = ET.fromstring(r.text)
 		if response.find("reply").find("code").text != "300":
-			sys.exit('Retrieving DNS records for \'' + domain + '\' failed. Response code: ' + response.find("reply").find("code").text)
+			sys.exit(f"Retrieving DNS records for '{domain}' failed. Response code: {response.find('reply').find('code').text}")
 		
 		# Create list of subdomains for this domain from config option
 		subdomains = config.get(domain, 'NS_Subdomains').split(',')
@@ -68,14 +68,14 @@ def update(new_ipv4, new_ipv6):
 			record["value"] = xmlrecord.find("value").text
 			
 			# Check if record is in out list of subdomains and then update
-			if (((not new_ipv4 == None and record['type'] == 'A') or (not new_ipv6 == None and record['type'] == 'AAAA')) and \
+			if (((new_ipv4 and record['type'] == 'A') or (new_ipv6 and record['type'] == 'AAAA')) and \
 					(record['host'] in subdomains or record['host'].rsplit('.' + domain, 1)[0] in subdomains)
 					):
 					# If this record already has the correct IP, we return early
 					# and don't do anything.
 					if ((record['type'] == 'A' and record['value'] == new_ipv4.strNormal()) or (record['type'] == 'AAAA' and record['value'] == new_ipv6.strNormal())):
 						if not config.getboolean('DEFAULT', 'quiet'):
-							print("Record '" + record['host'] + "' does not require updating.")
+							print(f"Record '{record['host']}' does not require updating.")
 					else:
 						# Update the record with the new IP address
 						if record['type'] == 'A':
@@ -96,11 +96,11 @@ def update(new_ipv4, new_ipv6):
 							'rrttl': new_ttl
 						}
 						r = requests.get('https://www.namesilo.com/api/dnsUpdateRecord', params=request_params)
-						if not r.status_code == 200:
-							sys.exit("Unexpected status code while updating '" + record['host'] + "': " + str(r.status_code))
+						if r.status_code != 200:
+							sys.exit(f"Unexpected status code while updating '{record['host']}': {r.status_code}")
 						response = ET.fromstring(r.text)
 						if response.find("reply").find("code").text == "300":
 							if not config.getboolean('DEFAULT', 'quiet'):
-								print('Updated \'' + record["host"] + '\' with \'' + new_ip + '\'')
+								print(f"Updated '{record['host']}' with '{new_ip}'")
 						else:
-							sys.exit('Updating \'' + record['host'] + '\' with \'' + new_ip + '\' failed. Response code: ' + response.find("reply").find("code").text)
+							sys.exit(f"Updating '{record['host']}' with '{new_ip}' failed. Response code: {response.find('reply').find('code').text}")

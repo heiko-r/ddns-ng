@@ -24,5 +24,5 @@ def getIP():
 	if  r.status_code >= 200 and r.status_code < 300:
 		return r.text
 	else:
-		print("Error when fetching IPv4 URL: Status code: " + r.status_code)
+		print(f"Error when fetching IPv4 URL: Status code: {r.status_code}")
 		return None

@@ -18,7 +18,7 @@
 
 import os
 import sys
-import ConfigParser
+import configparser
 import requests
 import json
 
@@ -33,8 +33,8 @@ if not os.path.isfile(config_file):
 	sys.exit("Could not find the configuration file for the cloudflare module. Please check that the dnsupdaters/cloudflare.ini file is readable.")
 
 # Read config file
-config = ConfigParser.RawConfigParser()
-config.readfp(open(config_file)) # TODO: throw exception if invalid config file?
+config = configparser.ConfigParser()
+config.read(config_file) # TODO: throw exception if invalid config file?
 
 def update(new_ipv4, new_ipv6):
 	# General request headers (authentication)
@@ -52,8 +52,8 @@ def update(new_ipv4, new_ipv6):
 			'name':	domain
 		}
 		r = requests.get('https://api.cloudflare.com/client/v4/zones', params=request_params, headers=request_headers)
-		if not r.status_code == 200:
-			sys.exit('Unexpected status code while loading zone: ' + str(r.status_code))
+		if r.status_code != 200:
+			sys.exit(f'Unexpected status code while loading zone: {r.status_code}')
 		response = json.loads(r.text)
 		zone_id = response['result'][0]['id']
 		
@@ -73,20 +73,20 @@ def update(new_ipv4, new_ipv6):
 				'direction':	'asc'
 			}
 			r = requests.get('https://api.cloudflare.com/client/v4/zones/' + zone_id + '/dns_records', params=request_params, headers=request_headers)
-			if not r.status_code == 200:
-				sys.exit('Unexpected status code while loading DNS records for ' + domain + ': ' + str(r.status_code))
+			if r.status_code != 200:
+				sys.exit(f'Unexpected status code while loading DNS records for { domain }: {r.status_code}')
 			response = json.loads(r.text)
 			
 			# Check if record is in out list of subdomains and then update
 			for record in response['result']:
-				if (((not new_ipv4 == None and record['type'] == 'A') or (not new_ipv6 == None and record['type'] == 'AAAA')) and \
+				if (((new_ipv4 and record['type'] == 'A') or (new_ipv6 and record['type'] == 'AAAA')) and \
 					(record['name'] in subdomains or record['name'].rsplit('.' + domain, 1)[0] in subdomains)
 					):
 					# If this record already has the correct IP, we return early
 					# and don't do anything.
 					if ((record['type'] == 'A' and record['content'] == new_ipv4.strNormal()) or (record['type'] == 'AAAA' and record['content'] == new_ipv6.strNormal())):
 						if not config.getboolean('DEFAULT', 'quiet'):
-							print('Record \'' + record['name'] + '\' does not require updating.')
+							print(f"Record '{record['name']}' does not require updating.")
 					else:
 						record_id = record['id']
 						
@@ -106,17 +106,17 @@ def update(new_ipv4, new_ipv6):
 							'ttl':		new_ttl,
 							'proxied':	config.getboolean('DEFAULT', 'CF_Proxy')
 						})
-						r = requests.put('https://api.cloudflare.com/client/v4/zones/' + zone_id + '/dns_records/' + record_id, data=request_data, headers=request_headers)
-						if not r.status_code == 200:
+						r = requests.put(f'https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record_id}', data=request_data, headers=request_headers)
+						if r.status_code != 200:
 							print("text: " + r.text)
 							pp.pprint(r.headers)
-							sys.exit('Unexpected status code while updating DNS records for ' + record['name'] + ': ' + str(r.status_code))
+							sys.exit(f"Unexpected status code while updating DNS records for {record['name']}: {r.status_code}")
 						upd_response = json.loads(r.text)
-						if upd_response['success'] == True:
+						if upd_response['success'] is True:
 							if not config.getboolean('DEFAULT', 'quiet'):
-								print('Updated \'' + record["name"] + '\' with \'' + new_ip + '\'')
+								print(f"Updated '{record['name']}' with '{new_ip}'")
 						else:
-							sys.exit('Updating \'' + record['name'] + '\' with \'' + new_ip + '\' failed: ' + str(upd_response['errors']))
+							sys.exit(f"Updating '{record['name']}' with '{new_ip}' failed: {upd_response['errors']}")
 			# Check if the response was paginated and if so, call another page
 			if response['result_info']['total_pages'] > page:
 				# Set a new start point

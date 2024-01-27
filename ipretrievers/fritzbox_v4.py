@@ -16,15 +16,18 @@
 
 # Basic submodule to retrieve the public IPv4 address by querying a fritzbox via upnp
 
+from subprocess import CalledProcessError
+
+
 FRITZBOX_IP = "192.168.1.1"
 FRITZBOX_PORT = 49000
 
 def getIP():
 	from subprocess import check_output
 	try:
-		return check_output('upnpc -u http://' + FRITZBOX_IP + ':' + str(FRITZBOX_PORT) + '/igddesc.xml -s | grep ^ExternalIPAddress | cut -c 21-', shell=True).strip()
+		return check_output(f'upnpc -u http://{FRITZBOX_IP}:{FRITZBOX_PORT}/igddesc.xml -s | grep ^ExternalIPAddress | cut -c 21-', shell=True).strip()
 	except CalledProcessError as err:
-		print("ERROR: Failed to retrieve IPv4 address: " + str(err))
+		print(f'ERROR: Failed to retrieve IPv4 address: {err}')
 		return None
 		
 	

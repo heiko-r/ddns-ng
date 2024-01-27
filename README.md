@@ -1,5 +1,7 @@
 # DDNS-NG
 
+Notice: This project is not actively maintained anymore. Use at your own risk.
+
 ## Introduction
 A modular Dynamic DNS updater supporting IPv4 (A) and IPv6 (AAAA) records.
 Through modules, you can choose between different methods to determine and
@@ -35,7 +37,7 @@ These modules update your DNS records with the new IP addresses.
 * cloudflare: Update your DNS records via Cloudflare's API. Requires configuration in the module's cloudflare.ini file.
 
 ## Installation
-DDNS-NG requires Python. The only nonstandard Python module it depends on is "ipy" (https://github.com/autocracy/python-ipy/)
+DDNS-NG requires Python 3. The only nonstandard Python module it depends on is "ipy" (https://github.com/autocracy/python-ipy/), and when using the `upnp_v4` IP retriever, "miniupnpc".
 
 Clone or download the git repository onto your server, choose your modules in the config.ini file and configure any modules, if required.
 
